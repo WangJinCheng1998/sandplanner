@@ -205,10 +205,21 @@ parameters, and trajectory-evaluation weights. Relative paths are resolved again
 
 ## Pretrained weights & data
 
-Model checkpoints (`.pth`) and datasets are **not** tracked in this repository due to
-their size. Place trained weights under `checkpoints/` and point
-`InferenceConfig.checkpoint_path` to the desired file. <!-- TODO: add a download link
-for the released checkpoints / dataset. -->
+Two pretrained checkpoints are released. Download the desired file, place it under
+`checkpoints/`, and set `InferenceConfig.checkpoint_path` accordingly.
+
+| Checkpoint | Arc-length cap | Description |
+| --- | --- | --- |
+| **`Max_2.1m.pth`** *(default)* | `max_arc_length = 2.1 m` | During training, each supervision target is truncated to the first **2.1 m** of the path while the true (possibly distant) goal is still used as the conditioning input. The model therefore learns a short, fixed-horizon local plan with a higher control-point density per metre — stable and well-conditioned for close-range maneuvers. This is the default in `InferenceConfig`. |
+| **`NoMax.pth`** | none (uncapped) | Trained **without** the arc-length cap, i.e. on the full-length ground-truth trajectory. This gives a longer planning horizon, but spreads the same number of B-spline control points over a longer path. |
+
+> The two checkpoints differ only in the training-time `max_arc_length` setting; the
+> network architecture is identical.
+
+**Download:** <!-- TODO: add download links once the checkpoints are uploaded. -->
+
+Datasets are **not** included in this repository; see
+[Evaluation](#-evaluation-navdp-benchmark) for the benchmark assets.
 
 ---
 
