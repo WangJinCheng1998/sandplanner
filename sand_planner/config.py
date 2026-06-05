@@ -22,7 +22,7 @@ class InferenceConfig:
     )
 
     # 路径配置（使用相对路径） / Path configuration (relative paths)
-    checkpoint_path: str = "checkpoints/Max_2.1m.pth"
+    checkpoint_path: str = "checkpoints/NoMax.pth"
     stats_path: str = "data/outputs/trajectory_stats_mg2_mg50_2d.json"
     input_depth_dir: str = "data/real_test/draw"
     consecutive_depth_dir: str = "data/real_test/real_lab_converted/depth"

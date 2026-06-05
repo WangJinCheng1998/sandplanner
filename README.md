@@ -98,7 +98,7 @@ Then download the benchmark scene assets following the
 ```bash
 # Terminal 1 — serve SanD-Planner (run from THIS repo)
 python sand_planner/server/simple_server.py --port 8890 \
-    --checkpoint checkpoints/Max_2.1m.pth
+    --checkpoint checkpoints/NoMax.pth
 
 # Terminal 2 — run NavDP point-goal evaluation (run from the NavDP repo)
 python eval_pointgoal_wheeled.py --port 8890 \
@@ -117,7 +117,7 @@ python eval_pointgoal_wheeled.py --port 8890 \
 ```python
 from sand_planner import InferenceConfig, SandPlannerInference
 
-config = InferenceConfig(checkpoint_path="checkpoints/Max_2.1m.pth")
+config = InferenceConfig(checkpoint_path="checkpoints/NoMax.pth")
 planner = SandPlannerInference(config)
 results = planner.run_inference("depth_frame.png")        # from a depth image file
 best = results["sampled_trajectories"][results["best_index"]]   # (N, 3) trajectory
@@ -141,7 +141,7 @@ server and the NavDP benchmark.
 ### Inference server
 
 ```bash
-python sand_planner/server/simple_server.py --port 8890 --checkpoint checkpoints/Max_2.1m.pth
+python sand_planner/server/simple_server.py --port 8890 --checkpoint checkpoints/NoMax.pth
 ```
 
 Exposes `/navigator_reset`, `/pointgoal_step` and `/health` endpoints.
@@ -210,8 +210,8 @@ Two pretrained checkpoints are released. Download the desired file, place it und
 
 | Checkpoint | Arc-length cap | Description |
 | --- | --- | --- |
-| **`Max_2.1m.pth`** *(default)* | `max_arc_length = 2.1 m` | During training, each supervision target is truncated to the first **2.1 m** of the path while the true (possibly distant) goal is still used as the conditioning input. The model therefore learns a short, fixed-horizon local plan with a higher control-point density per metre — stable and well-conditioned for close-range maneuvers. This is the default in `InferenceConfig`. |
-| **`NoMax.pth`** | none (uncapped) | Trained **without** the arc-length cap, i.e. on the full-length ground-truth trajectory. This gives a longer planning horizon, but spreads the same number of B-spline control points over a longer path. |
+| **`NoMax.pth`** *(default)* | none (uncapped) | Trained **without** the arc-length cap, i.e. on the full-length ground-truth trajectory. This gives a longer planning horizon, supervised on the entire path to the goal. This is the default in `InferenceConfig`. |
+| **`Max_2.1m.pth`** | `max_arc_length = 2.1 m` | During training, each supervision target is truncated to the first **2.1 m** of the path while the true (possibly distant) goal is still used as the conditioning input. The model therefore learns a short, fixed-horizon local plan with a higher control-point density per metre — stable and well-conditioned for close-range maneuvers. |
 
 > The two checkpoints differ only in the training-time `max_arc_length` setting; the
 > network architecture is identical.
