@@ -64,9 +64,10 @@ SanD-Planner is evaluated in the
 that the NavDP evaluation scripts query at every simulation step.
 
 <p align="center">
-  <img src="assets/eval_demo.gif" width="480" alt="SanD-Planner point-goal navigation in a cluttered scene">
+  <img src="assets/eval_demo.gif" width="360" alt="Point-goal navigation in a cluttered hard scene"/>
+  <img src="assets/eval_demo2.gif" width="360" alt="Point-goal navigation in an indoor scene"/>
 </p>
-<p align="center"><em>Point-goal navigation in a cluttered "hard" scene (NavDP benchmark).</em></p>
+<p align="center"><em>Point-goal navigation in the NavDP benchmark — a cluttered "hard" scene (left) and an indoor scene (right).</em></p>
 
 ### Step 1 — Install Isaac Sim 4.2.0 + Isaac Lab 1.2.0
 
