@@ -205,16 +205,21 @@ parameters, and trajectory-evaluation weights. Relative paths are resolved again
 
 ## Pretrained weights & data
 
-Two pretrained checkpoints are released. Download the desired file, place it under
+Three pretrained checkpoints are released. Download the desired file, place it under
 `checkpoints/`, and set `InferenceConfig.checkpoint_path` accordingly.
 
-| Checkpoint | Arc-length cap | Description |
-| --- | --- | --- |
-| **`NoMax.pth`** *(default)* | none (uncapped) | Trained **without** the arc-length cap, i.e. on the full-length ground-truth trajectory. This gives a longer planning horizon, supervised on the entire path to the goal. This is the default in `InferenceConfig`. |
-| **`Max_2.1m.pth`** | `max_arc_length = 2.1 m` | During training, each supervision target is truncated to the first **2.1 m** of the path while the true (possibly distant) goal is still used as the conditioning input. The model therefore learns a short, fixed-horizon local plan with a higher control-point density per metre — stable and well-conditioned for close-range maneuvers. |
+| Checkpoint | Arc-length cap | Control points | Description |
+| --- | --- | --- | --- |
+| **`NoMax.pth`** *(default)* | none (uncapped) | 8 | Trained on the full-length ground-truth trajectory (no arc-length cap); longer planning horizon. Default in `InferenceConfig`. |
+| **`NoMax_12.pth`** | none (uncapped) | 12 | Same setup as `NoMax.pth` but with **12** B-spline control points for higher-resolution trajectories. Requires `num_control_points=12` (see note below). |
+| **`Max_2.1m.pth`** | `max_arc_length = 2.1 m` | 8 | Supervision targets are truncated to the first **2.1 m** of the path while the true (possibly distant) goal is kept as the conditioning input — a short, fixed-horizon local plan, stable for close-range maneuvers. |
 
-> The two checkpoints differ only in the training-time `max_arc_length` setting; the
-> network architecture is identical.
+> ⚠️ The checkpoints do **not** embed the control-point count, so it must match
+> `InferenceConfig.num_control_points` (default `8`). To use `NoMax_12.pth`, set it to `12`:
+>
+> ```python
+> config = InferenceConfig(checkpoint_path="checkpoints/NoMax_12.pth", num_control_points=12)
+> ```
 
 **Download** (from the [`v1.0` release](https://github.com/WangJinCheng1998/sandplanner/releases/tag/v1.0)):
 
