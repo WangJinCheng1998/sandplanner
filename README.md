@@ -233,8 +233,9 @@ wget -P checkpoints \
 
 ### Training data
 
-The **`dataset_avoid`** subset (obstacle-avoidance runs) used to train the released
-checkpoints is available on the Hugging Face Hub:
+The **`dataset_avoid`** subset — obstacle-avoidance runs collected in a custom **Gazebo**
+simulation, one part of the full training set used to train the released checkpoints — is
+available on the Hugging Face Hub:
 
 **https://huggingface.co/datasets/WJCUCL/sandplanner-dataset-avoid**
 
