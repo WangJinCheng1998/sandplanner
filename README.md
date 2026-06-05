@@ -239,9 +239,10 @@ checkpoints is available on the Hugging Face Hub:
 **https://huggingface.co/datasets/WJCUCL/sandplanner-dataset-avoid**
 
 ```bash
-# download the dataset into dataset/dataset_avoid/
-hf download WJCUCL/sandplanner-dataset-avoid --repo-type dataset \
-    --local-dir dataset/dataset_avoid
+# download the archive and extract into dataset/dataset_avoid/
+hf download WJCUCL/sandplanner-dataset-avoid dataset_avoid.zip \
+    --repo-type dataset --local-dir .
+unzip dataset_avoid.zip -d dataset/      # -> dataset/dataset_avoid/run_XXXX/
 
 # train on it (run_train.sh loads every dataset_* subdir under DATASET_ROOT)
 DATASET_ROOT=dataset bash run_train.sh
