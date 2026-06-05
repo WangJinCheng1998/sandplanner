@@ -231,8 +231,25 @@ wget -P checkpoints \
   https://github.com/WangJinCheng1998/sandplanner/releases/download/v1.0/Max_2.1m.pth
 ```
 
-Datasets are **not** included in this repository; see
-[Evaluation](#-evaluation-navdp-benchmark) for the benchmark assets.
+### Training data
+
+The **`dataset_avoid`** subset (obstacle-avoidance runs) used to train the released
+checkpoints is available on the Hugging Face Hub:
+
+**https://huggingface.co/datasets/WJCUCL/sandplanner-dataset-avoid**
+
+```bash
+# download the dataset into dataset/dataset_avoid/
+hf download WJCUCL/sandplanner-dataset-avoid --repo-type dataset \
+    --local-dir dataset/dataset_avoid
+
+# train on it (run_train.sh loads every dataset_* subdir under DATASET_ROOT)
+DATASET_ROOT=dataset bash run_train.sh
+```
+
+Each `run_XXXX/` holds `traj_xyz.npy`, `traj_yaw.npy`, `traj_pitch.npy` and a `depth/`
+folder of depth frames. The benchmark / simulation scene assets are separate — see
+[Evaluation](#-evaluation-navdp-benchmark).
 
 ---
 
