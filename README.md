@@ -216,7 +216,14 @@ Two pretrained checkpoints are released. Download the desired file, place it und
 > The two checkpoints differ only in the training-time `max_arc_length` setting; the
 > network architecture is identical.
 
-**Download:** <!-- TODO: add download links once the checkpoints are uploaded. -->
+**Download** (from the [`v1.0` release](https://github.com/WangJinCheng1998/sandplanner/releases/tag/v1.0)):
+
+```bash
+mkdir -p checkpoints
+wget -P checkpoints \
+  https://github.com/WangJinCheng1998/sandplanner/releases/download/v1.0/Max_2.1m.pth \
+  https://github.com/WangJinCheng1998/sandplanner/releases/download/v1.0/NoMax.pth
+```
 
 Datasets are **not** included in this repository; see
 [Evaluation](#-evaluation-navdp-benchmark) for the benchmark assets.
