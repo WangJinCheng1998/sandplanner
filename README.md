@@ -1,6 +1,8 @@
 # SanD-Planner
 
-**Structured-and-Decomposed trajectory planning for vision-based robot navigation.**
+### Sample-Efficient Diffusion Planner in B-Spline Space for Robust Local Navigation
+
+[![arXiv](https://img.shields.io/badge/arXiv-2602.00923-b31b1b.svg)](https://arxiv.org/abs/2602.00923)
 
 SanD-Planner is a learning-based local trajectory planner for point-goal robot
 navigation. It predicts smooth, collision-aware trajectories directly from onboard
@@ -152,18 +154,61 @@ Hyper-parameters (sequence length, number of control points, learning-rate sched
 normalization, CFG, etc.) are passed as command-line arguments in `run_train.sh`.
 Training metrics are logged to Weights & Biases (project `sand-planner`).
 
-### Analysis scripts
+---
 
-The standalone scripts reproduce the design-analysis figures (set `DATASET_ROOT`
-first):
+## Simulation & benchmark
+
+SanD-Planner is evaluated in the
+[NavDP](https://github.com/InternRobotics/NavDP) navigation benchmark, which runs on
+**NVIDIA Isaac Sim 4.2.0** and **Isaac Lab 1.2.0**. The planner is served over HTTP
+(see *Inference server* above) and queried by the NavDP evaluation scripts.
+
+### 1. Set up the simulation environment
 
 ```bash
-export DATASET_ROOT=/path/to/dataset
-python elbow_test_6m.py          # how many control points are enough?
-python cp_vs_error_plot.py       # control points vs. reconstruction error
-python turn_vs_cp.py             # turning sharpness vs. control points
-python plot_arc_length_dist.py   # arc-length distribution of training segments
+# Create a conda environment with Isaac Sim 4.2.0
+conda create -n isaaclab python=3.10
+conda activate isaaclab
+pip install --upgrade pip
+pip install isaacsim==4.2.0.2 isaacsim-extscache-physics==4.2.0.2 \
+    isaacsim-extscache-kit==4.2.0.2 isaacsim-extscache-kit-sdk==4.2.0.2 \
+    --extra-index-url https://pypi.nvidia.com
+isaacsim omni.isaac.sim.python.kit
+
+# Install Isaac Lab 1.2.0
+git clone https://github.com/isaac-sim/IsaacLab.git
+cd IsaacLab
+git checkout tags/v1.2.0
+./isaaclab.sh -i
+./isaaclab.sh -p source/standalone/tutorials/00_sim/create_empty.py   # smoke test
 ```
+
+### 2. Install the NavDP benchmark
+
+```bash
+git clone https://github.com/InternRobotics/NavDP.git
+cd NavDP
+pip install -r requirements.txt
+```
+
+Download the benchmark scene assets following the instructions in the
+[NavDP repository](https://github.com/InternRobotics/NavDP).
+
+### 3. Run the evaluation
+
+Start the SanD-Planner server, then launch a NavDP evaluation script against it:
+
+```bash
+# (terminal 1) serve SanD-Planner
+python sand_planner/server/simple_server.py --port 8890 --checkpoint checkpoints/your_model.pth
+
+# (terminal 2, inside the NavDP repo) point-goal evaluation
+python eval_pointgoal_wheeled.py --port 8890 \
+    --scene_dir {ASSET_SCENE} --scene_index {INDEX} --scene_scale {SCALE}
+```
+
+> Isaac Sim / Isaac Lab versions and asset setup follow the NavDP benchmark; please
+> refer to the upstream repository for the authoritative, up-to-date instructions.
 
 ---
 
@@ -189,24 +234,30 @@ for the released checkpoints / dataset. -->
 If you find this work useful, please cite:
 
 ```bibtex
-@article{sandplanner,
-  title   = {SanD-Planner: <full paper title>},
-  author  = {<authors>},
-  journal = {<venue>},
-  year    = {<year>},
+@article{wang2026sand,
+  title   = {SanD-Planner: Sample-Efficient Diffusion Planner in B-Spline Space for Robust Local Navigation},
+  author  = {Wang, Jincheng and Bao, Lingfan and Yang, Tong and Plasencia, Diego Martinez and Jiao, Jianhao and Kanoulas, Dimitrios},
+  journal = {arXiv preprint arXiv:2602.00923},
+  year    = {2026}
 }
 ```
 
-<!-- TODO: replace the placeholders above with the published reference. -->
-
 ## Acknowledgements
 
-The diffusion backbone (`UNet1DConditionModel`, ResNet/embedding/transformer
-building blocks) is adapted from the
-[HuggingFace `diffusers`](https://github.com/huggingface/diffusers) library
-(Apache-2.0).
+- Simulation and benchmarking are built on
+  [**NavDP**](https://github.com/InternRobotics/NavDP) (InternRobotics) — we thank
+  the authors for releasing the navigation benchmark and Isaac Sim / Isaac Lab
+  evaluation environment.
+- The diffusion backbone (`UNet1DConditionModel`, ResNet / embedding / transformer
+  building blocks) is adapted from
+  [HuggingFace `diffusers`](https://github.com/huggingface/diffusers) (Apache-2.0).
 
 ## License
 
-<!-- TODO: choose a license (e.g. Apache-2.0, which is compatible with the adapted
-diffusers code) and add a LICENSE file. -->
+This project is released under the [Apache License 2.0](LICENSE), which is
+compatible with the adapted `diffusers` components (also Apache-2.0).
+
+> The NavDP benchmark and its simulation assets are distributed by their authors
+> under CC BY-NC-SA 4.0 and are **not** included in this repository; obtain them
+> from the [upstream project](https://github.com/InternRobotics/NavDP) under their
+> original terms.
