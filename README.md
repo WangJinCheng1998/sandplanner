@@ -22,7 +22,7 @@ obstacle field.
 
 1. [**Installation**](#-installation) — set up SanD-Planner
 2. [**Evaluation**](#-evaluation-navdp-benchmark) — reproduce results on the NavDP benchmark
-3. [Usage](#usage) · [Highlights](#highlights) · [Repository structure](#repository-structure) · [Configuration](#configuration) · [Pretrained weights & data](#pretrained-weights--data) · [Citation](#citation)
+3. [Usage](#usage) · [Repository structure](#repository-structure) · [Configuration](#configuration) · [Pretrained weights & data](#pretrained-weights--data) · [Citation](#citation)
 
 ---
 
@@ -157,25 +157,6 @@ bash run_train.sh
 Hyper-parameters (sequence length, number of control points, learning-rate schedule,
 normalization, CFG, etc.) are passed as command-line arguments in `run_train.sh`.
 Training metrics are logged to Weights & Biases (project `sand-planner`).
-
----
-
-## Highlights
-
-- **Diffusion in control-point space.** A conditional 1-D U-Net DDPM generates
-  8–12 B-spline control points, yielding smooth trajectories without dense
-  waypoint regression.
-- **Depth-conditioned multi-frame encoder.** ResNet-18 spatial features + a
-  Transformer over multi-frame tokens, with optional TEA-lite motion cues and a
-  2-D sinusoidal positional encoding.
-- **Fast, controllable sampling.** Classifier-free guidance (CFG), v-prediction,
-  and DPM-Solver multi-step sampling for low-latency inference.
-- **ESDF-based trajectory evaluation.** Vectorized clearance / safety-margin /
-  goal-cost scoring against a Euclidean Signed Distance Field (CPU EDT, optionally
-  CuPy-accelerated on GPU), with optional warm-start and best-plan backtracking for
-  temporal consistency.
-- **Ready-to-serve.** A lightweight Flask inference server exposes a point-goal
-  navigation endpoint.
 
 ---
 
