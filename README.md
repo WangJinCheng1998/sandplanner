@@ -63,6 +63,11 @@ SanD-Planner is evaluated in the
 **NVIDIA Isaac Sim 4.2.0** and **Isaac Lab 1.2.0**. The planner runs as an HTTP server
 that the NavDP evaluation scripts query at every simulation step.
 
+<p align="center">
+  <img src="assets/eval_demo.gif" width="480" alt="SanD-Planner point-goal navigation in a cluttered scene">
+</p>
+<p align="center"><em>Point-goal navigation in a cluttered "hard" scene (NavDP benchmark).</em></p>
+
 ### Step 1 — Install Isaac Sim 4.2.0 + Isaac Lab 1.2.0
 
 ```bash
