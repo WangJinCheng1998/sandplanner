@@ -226,8 +226,9 @@ Three pretrained checkpoints are released. Download the desired file, place it u
 ```bash
 mkdir -p checkpoints
 wget -P checkpoints \
-  https://github.com/WangJinCheng1998/sandplanner/releases/download/v1.0/Max_2.1m.pth \
-  https://github.com/WangJinCheng1998/sandplanner/releases/download/v1.0/NoMax.pth
+  https://github.com/WangJinCheng1998/sandplanner/releases/download/v1.0/NoMax.pth \
+  https://github.com/WangJinCheng1998/sandplanner/releases/download/v1.0/NoMax_12.pth \
+  https://github.com/WangJinCheng1998/sandplanner/releases/download/v1.0/Max_2.1m.pth
 ```
 
 Datasets are **not** included in this repository; see
