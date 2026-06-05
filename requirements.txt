@@ -1,0 +1,21 @@
+# Core dependencies for SanD-Planner
+# Python >= 3.9 and a CUDA-enabled PyTorch build are recommended.
+
+torch>=2.0
+numpy
+scipy
+diffusers>=0.30
+accelerate
+timm
+opencv-python
+pillow
+imageio
+imageio-ffmpeg
+matplotlib
+tqdm
+flask
+wandb
+
+# Optional: GPU-accelerated ESDF computation
+#   cupy-cuda12x      # CuPy build matching your CUDA version
+#   nvblox_torch      # NVBlox-based ESDF (otherwise a CPU EDT fallback is used)

@@ -1,0 +1,45 @@
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*.egg-info/
+*.egg
+.eggs/
+build/
+dist/
+.ipynb_checkpoints/
+
+# ---- Model weights / checkpoints (large; distribute separately) ----
+checkpoints/
+*.pth
+*.pt
+*.ckpt
+*.safetensors
+
+# ---- Datasets / generated outputs (not for version control) ----
+data/
+dataset/
+depth_images/
+outputs/
+logs/
+wandb/
+timing.log
+
+# ---- Media / large artifacts ----
+*.mp4
+*.avi
+*.npy
+*.npz
+*.png
+*.jpg
+*.jpeg
+
+# ---- Editor / OS / tooling ----
+.idea/
+.vscode/
+.claude/
+.DS_Store
+Thumbs.db
+
+# ---- Internal local backups (do not publish) ----
+.comment_backup_*/
+.refactor_backup_*/
