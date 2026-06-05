@@ -98,7 +98,7 @@ Then download the benchmark scene assets following the
 ```bash
 # Terminal 1 — serve SanD-Planner (run from THIS repo)
 python sand_planner/server/simple_server.py --port 8890 \
-    --checkpoint checkpoints/your_model.pth
+    --checkpoint checkpoints/Max_2.1m.pth
 
 # Terminal 2 — run NavDP point-goal evaluation (run from the NavDP repo)
 python eval_pointgoal_wheeled.py --port 8890 \
@@ -117,7 +117,7 @@ python eval_pointgoal_wheeled.py --port 8890 \
 ```python
 from sand_planner import InferenceConfig, SandPlannerInference
 
-config = InferenceConfig(checkpoint_path="checkpoints/your_model.pth")
+config = InferenceConfig(checkpoint_path="checkpoints/Max_2.1m.pth")
 planner = SandPlannerInference(config)
 results = planner.run_inference("depth_frame.png")        # from a depth image file
 best = results["sampled_trajectories"][results["best_index"]]   # (N, 3) trajectory
@@ -141,7 +141,7 @@ server and the NavDP benchmark.
 ### Inference server
 
 ```bash
-python sand_planner/server/simple_server.py --port 8890 --checkpoint checkpoints/your_model.pth
+python sand_planner/server/simple_server.py --port 8890 --checkpoint checkpoints/Max_2.1m.pth
 ```
 
 Exposes `/navigator_reset`, `/pointgoal_step` and `/health` endpoints.
