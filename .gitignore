@@ -16,10 +16,14 @@ checkpoints/
 *.safetensors
 
 # ---- Datasets / generated outputs (not for version control) ----
-data/
+data/*
+# ...but keep the small trajectory-normalization stats needed for inference/training
+!data/outputs/
+data/outputs/*
+!data/outputs/trajectory_stats_mg2_mg50_2d.json
 dataset/
 depth_images/
-outputs/
+/outputs/
 logs/
 wandb/
 timing.log
