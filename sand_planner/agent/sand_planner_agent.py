@@ -112,25 +112,25 @@ class SandPlannerAgent:
         if hasattr(self, 'frame_counters') and i < len(self.frame_counters):
             self.frame_counters[i] = 0
 
-        # 1.6. 定期重置 NVBlox mapper 防止内存累积
-        # 1.6. Periodically reset the NVBlox mapper to prevent memory buildup
+        # 1.6. 定期清理显存防止累积
+        # 1.6. Periodically free GPU memory to prevent buildup
         if hasattr(self, 'mapper_step_count'):
             self.mapper_step_count += 1
             if self.mapper_step_count >= self.mapper_reset_interval:
                 if self.verbose:
-                    print(f"🧹 达到{self.mapper_reset_interval}步，重置NVBlox mapper防止内存泄漏...")
+                    print(f"🧹 达到{self.mapper_reset_interval}步，清理显存防止内存泄漏...")
                 self.planner.reset_environment()
                 self.mapper_step_count = 0  # 重置计数器 / reset the counter
             if self.verbose:
                 print(f"🔄 重置环境{i}的帧计数器")
 
-        # 2. 清理 NVBlox mapper 和温启动缓存（关键，防止 CUDA 内存泄漏）
-        # 2. Clear the NVBlox mapper and warmup cache (critical to prevent CUDA memory leaks)
+        # 2. 清理推理缓存与温启动缓存（关键，防止 CUDA 内存泄漏）
+        # 2. Clear the inference and warm-start caches (critical to prevent CUDA memory leaks)
         if hasattr(self, 'planner') and self.planner is not None:
             try:
                 self.planner.reset_environment()
                 if self.verbose:
-                    print(f"✅ 环境{i}: 已清理NVBlox mapper和温启动缓存")
+                    print(f"✅ 环境{i}: 已清理推理缓存和温启动缓存")
             except Exception as e:
                 if self.verbose:
                     print(f"⚠️ 环境{i}: 清理失败 - {e}")

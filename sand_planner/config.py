@@ -8,13 +8,6 @@ import os
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Tuple
 
-try:
-    from sand_planner.utils.nvblox_esdf import NvbloxESDFMapper
-    NVBLOX_AVAILABLE = True
-except ImportError:
-    NVBLOX_AVAILABLE = False
-
-
 @dataclass
 class InferenceConfig:
     """推理配置类 / Inference configuration."""
@@ -75,7 +68,6 @@ class InferenceConfig:
 
     # ESDF 配置 - 2D 平面查询版本（适合地面机器人）
     # ESDF configuration - 2D planar query variant (suited for ground robots)
-    use_nvblox: bool = False  # 禁用 NVBlox，改用 CPU 方法（规避 GPU 内存问题） / Disable NVBlox, use CPU method (avoids GPU memory issues)
     use_gpu_esdf: bool = True  # 使用 GPU (CuPy) 加速 EDT 计算 / Use GPU (CuPy) to accelerate EDT computation
     esdf_voxel_size: float = 0.05  # 保持高精度 / Keep high resolution
     # 体素栅格尺寸：X 约 4m（左右）、Y 约 2m（上下）、Z 约 5m（前后），已针对内存优化
@@ -138,12 +130,11 @@ class InferenceConfig:
             'grid_origin': self.esdf_grid_origin,
         }
 
-        # CPU 方法需要额外参数 / The CPU method requires extra parameters
-        if not self.use_nvblox or not NVBLOX_AVAILABLE:
-            base_config.update({
-                'downsample_factor': self.esdf_downsample_factor,
-                'surface_threshold': self.esdf_surface_threshold,
-                'use_gpu': self.use_gpu_esdf  # 使用 GPU (CuPy) 加速 EDT / Use GPU (CuPy) to accelerate EDT
-            })
+        # CPU/CuPy (EDT) 方法的额外参数 / Extra parameters for the CPU/CuPy (EDT) method
+        base_config.update({
+            'downsample_factor': self.esdf_downsample_factor,
+            'surface_threshold': self.esdf_surface_threshold,
+            'use_gpu': self.use_gpu_esdf  # 使用 GPU (CuPy) 加速 EDT / Use GPU (CuPy) to accelerate EDT
+        })
 
         return base_config

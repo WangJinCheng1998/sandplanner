@@ -121,7 +121,7 @@ class SandPlannerInference:
         在每个 episode 结束时调用，防止内存泄漏。
         Called at the end of each episode to prevent memory leaks.
         """
-        # 清空 NVBlox mapper / Clear the NVBlox mapper
+        # 清理评估器缓存与显存 / Reset evaluator caches and free GPU memory
         self.evaluator.reset_mapper()
         self.inference_engine.reset_warm_start_cache()
 

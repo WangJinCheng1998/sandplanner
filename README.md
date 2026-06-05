@@ -29,9 +29,9 @@ obstacle field.
 - **Fast, controllable sampling.** Classifier-free guidance (CFG), v-prediction,
   and DPM-Solver multi-step sampling for low-latency inference.
 - **ESDF-based trajectory evaluation.** Vectorized clearance / safety-margin /
-  goal-cost scoring against a Euclidean Signed Distance Field (CPU EDT or optional
-  GPU / NVBlox), with optional warm-start and best-plan backtracking for temporal
-  consistency.
+  goal-cost scoring against a Euclidean Signed Distance Field (CPU EDT, optionally
+  CuPy-accelerated on GPU), with optional warm-start and best-plan backtracking for
+  temporal consistency.
 - **Ready-to-serve.** A lightweight Flask inference server exposes a point-goal
   navigation endpoint.
 
@@ -60,7 +60,7 @@ sand_planner/
 │   ├── evaluation_vectorized.py  # vectorized ESDF cost evaluation (runtime path)
 │   ├── evaluation.py             # reference (non-vectorized) evaluator
 │   └── visualization.py
-├── utils/                    # bspline, esdf, nvblox_esdf, normalize, image, traj_opt
+├── utils/                    # bspline, esdf, normalize, image, traj_opt
 ├── training/
 │   ├── train_bspline_ddpm.py # training entry point
 │   └── dataloader_bspline.py # SandPlannerBSplineDataset (multi-scene)
@@ -85,7 +85,7 @@ pip install -r requirements.txt
 ```
 
 Python ≥ 3.9 and a CUDA-enabled PyTorch build are recommended. GPU-accelerated ESDF
-computation is optional — install `cupy` and/or `nvblox_torch`; otherwise a CPU
+computation is optional — install `cupy`; otherwise a CPU
 Euclidean-distance-transform fallback is used.
 
 ---

@@ -16,6 +16,5 @@ tqdm
 flask
 wandb
 
-# Optional: GPU-accelerated ESDF computation
+# Optional: CuPy GPU-accelerated ESDF (otherwise a CPU EDT fallback is used)
 #   cupy-cuda12x      # CuPy build matching your CUDA version
-#   nvblox_torch      # NVBlox-based ESDF (otherwise a CPU EDT fallback is used)

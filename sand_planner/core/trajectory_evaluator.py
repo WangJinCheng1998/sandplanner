@@ -22,54 +22,17 @@ from sand_planner.utils.esdf import quick_depth_to_esdf
 from sand_planner.trajectory.evaluation_vectorized import evaluate_trajectories_vectorized
 from sand_planner.trajectory.evaluation import TrajectoryEvaluator as TrajEval
 
-try:
-    from sand_planner.utils.nvblox_esdf import nvblox_depth_to_esdf, NvbloxESDFMapper
-    NVBLOX_AVAILABLE = True
-except ImportError:
-    NVBLOX_AVAILABLE = False
-    print("⚠️  nvblox_torch未安装，将使用CPU方法生成ESDF")
-
-
 class TrajectoryEvaluator:
     """轨迹评估器。 / Trajectory evaluator."""
 
     def __init__(self, config: InferenceConfig):
         self.config = config
 
-        # 创建持久化的 NVBlox mapper（如果启用且可用）
-        # Create a persistent NVBlox mapper (if enabled and available).
-        self._nvblox_mapper = None
-        if self.config.use_nvblox and NVBLOX_AVAILABLE:
-            try:
-                self._nvblox_mapper = NvbloxESDFMapper(
-                    voxel_size=self.config.esdf_config.get('voxel_size', 0.05),
-                    device='cuda',
-                    verbose=False  # 初始化时不打印日志 / Do not print logs during initialization.
-                )
-                if self.config.show_verbose:
-                    print("✅ 已创建持久化NVBlox mapper (复用以获得30x性能提升)")
-            except Exception as e:
-                if self.config.show_verbose:
-                    print(f"⚠️  创建NVBlox mapper失败: {e}, 将使用CPU方法")
-                self._nvblox_mapper = None
-
     def reset_mapper(self):
-        """轻量级重置：只做垃圾回收，不重新创建 mapper。 / Lightweight reset: only run garbage collection, do not recreate the mapper.
-
-        注意:
-        1. mapper.clear() 会导致 NVBlox 崩溃；
-        2. 重新创建 mapper 会导致内存泄漏和 OOM；
-        3. 因此采用轻量级策略：保留 mapper，只做垃圾回收；
-        4. 数据会在同一世界坐标系下累积，但对于单帧推理影响不大。
-
-        Note:
-        1. mapper.clear() crashes NVBlox.
-        2. Recreating the mapper causes memory leaks and OOM.
-        3. Therefore use a lightweight strategy: keep the mapper and only run garbage collection.
-        4. Data accumulates in the same world coordinate frame, but this has little impact on single-frame inference.
+        """轻量级重置：清空 CUDA 缓存并执行垃圾回收。
+        Lightweight reset: clear the CUDA cache and run garbage collection.
         """
-        # 只做 CUDA 垃圾回收，不动 mapper
-        # Only run CUDA garbage collection; leave the mapper untouched.
+        # CUDA 垃圾回收 / CUDA garbage collection.
         if torch.cuda.is_available():
             torch.cuda.synchronize()
             torch.cuda.empty_cache()
@@ -79,7 +42,7 @@ class TrajectoryEvaluator:
         gc.collect()
 
         if self.config.show_verbose:
-            print("🔄 轻量级重置：垃圾回收完成（保留mapper避免OOM）")
+            print("🔄 轻量级重置：垃圾回收完成 / Lightweight reset: GC done")
 
     def create_esdf_query(self, depth_img: np.ndarray):
         """创建 ESDF 查询函数。 / Create the ESDF query function."""
@@ -89,134 +52,15 @@ class TrajectoryEvaluator:
         depth_meters = depth_img * self.config.max_depth
 
         try:
-            # 选择使用 NVBlox 或 CPU 方法
-            # Choose between the NVBlox method and the CPU method.
-            if self._nvblox_mapper is not None:
-                # 使用持久化的 mapper（30x 性能提升！）
-                # Use the persistent mapper (30x speedup!).
-                if self.config.show_verbose:
-                    print("🚀 使用复用的NVBlox mapper (30x加速)...")
-
-                # 不要每次都 clear，会导致内存泄漏；只在 reset_mapper 时重新创建 mapper 来释放内存。
-                # Do not clear on every call, as this leaks memory; only recreate the mapper in reset_mapper to free memory.
-
-                # 集成深度图（使用 integrate_depth 方法，它会处理所有细节）
-                # Integrate the depth image (using integrate_depth, which handles all the details).
-                voxel_size = self.config.esdf_config.get('voxel_size', 0.05)
-                self._nvblox_mapper.integrate_depth(
-                    depth_image=depth_meters,
-                    camera_intrinsics=self.config.camera_intrinsics,
-                    # 使用默认位姿（相机在原点）
-                    # Use the default pose (camera at the origin).
-                    camera_pose=None,
-                    max_depth=self.config.max_depth,
-                    truncation_distance=voxel_size * 4
-                )
-
-                # 更新 ESDF / Update the ESDF.
-                max_dist = self.config.esdf_config.get('max_distance', 2.0)
-                self._nvblox_mapper.update_esdf(max_distance=max_dist)
-
-                # 采样 ESDF 网格 / Sample the ESDF grid.
-                from sand_planner.utils.nvblox_esdf import _sample_esdf_grid
-                grid_size = self.config.esdf_config.get('grid_size', (150, 150, 30))
-                grid_origin = self.config.esdf_config.get('grid_origin', (-3.0, -3.0, -1.0))
-
-                print(f"\n🔍 [ESDF调试] NVBlox采样参数:")
-                print(f"   - grid_size: {grid_size}")
-                print(f"   - grid_origin: {grid_origin}")
-                print(f"   - voxel_size: {voxel_size}")
-                print(f"   - 覆盖范围: X:[{grid_origin[0]:.2f}, {grid_origin[0] + grid_size[0]*voxel_size:.2f}], "
-                      f"Y:[{grid_origin[1]:.2f}, {grid_origin[1] + grid_size[1]*voxel_size:.2f}], "
-                      f"Z:[{grid_origin[2]:.2f}, {grid_origin[2] + grid_size[2]*voxel_size:.2f}]")
-
-                esdf = _sample_esdf_grid(
-                    mapper=self._nvblox_mapper,  # 传递整个NvbloxESDFMapper对象
-                    grid_size=grid_size,
-                    grid_origin=grid_origin,
-                    voxel_size=voxel_size
-                )
-
-                # 调试 ESDF 采样结果 / Debug the ESDF sampling result.
-                print(f"\n🔍 [ESDF调试] 采样结果统计:")
-                print(f"   - ESDF形状: {esdf.shape}")
-                print(f"   - ESDF范围: [{esdf.min():.3f}, {esdf.max():.3f}]")
-                print(f"   - ESDF均值: {esdf.mean():.3f}")
-                print(f"   - 非最大值体素: {np.sum(esdf < 100.0)}/{esdf.size} ({np.sum(esdf < 100.0)/esdf.size*100:.1f}%)")
-                print(f"   - 障碍物内部(d<0): {np.sum(esdf < 0)}")
-                print(f"   - 近障碍物(0≤d<0.5): {np.sum((esdf >= 0) & (esdf < 0.5))}")
-                print(f"   - 安全区域(d≥0.5): {np.sum(esdf >= 0.5)}")
-
-                # 检查原点附近的 ESDF 值：机器人位于 baselink 坐标系的 (0, 0, clearance_height)（2D 平面查询）。
-                # Check the ESDF value near the origin: the robot is at (0, 0, clearance_height) in the baselink frame (2D planar query).
-                if self.config.clearance_height is not None:
-                    baselink_query = np.array([0.0, 0.0, self.config.clearance_height])
-                else:
-                    baselink_query = np.array([0.0, 0.0, 0.0])
-
-                t_bc = np.array([0.0, 0.0, 0.10])
-                p_cam_link = baselink_query - t_bc
-
-                # 坐标轴转换 / Axis transformation.
-                camera_origin = np.array([
-                    -p_cam_link[1],  # x_cam = -y_bl
-                    -p_cam_link[2],  # y_cam = -z_bl
-                    p_cam_link[0]    # z_cam = x_bl
-                ])
-
-                origin_idx = [
-                    int((camera_origin[0] - grid_origin[0]) / voxel_size),
-                    int((camera_origin[1] - grid_origin[1]) / voxel_size),
-                    int((camera_origin[2] - grid_origin[2]) / voxel_size)
-                ]
-
-                print(f"\n🔍 [ESDF调试] 机器人位置检查:")
-                if self.config.clearance_height is not None:
-                    print(f"   - 2D平面查询高度: {self.config.clearance_height}m（Baselink坐标系）")
-                    print(f"   - Baselink查询点: (0, 0, {self.config.clearance_height})")
-                else:
-                    print(f"   - 3D查询模式")
-                    print(f"   - Baselink原点: (0, 0, 0)")
-                print(f"   - Camera坐标: {camera_origin}")
-                print(f"   - Grid索引: {origin_idx}")
-
-                if all(0 <= origin_idx[i] < esdf.shape[i] for i in range(3)):
-                    origin_dist = esdf[origin_idx[0], origin_idx[1], origin_idx[2]]
-                    print(f"   - 该点ESDF: {origin_dist:.3f}m")
-
-                    # 检查周围的点 / Inspect the surrounding points.
-                    print(f"   - 周围体素ESDF:")
-                    for di in [-1, 0, 1]:
-                        for dj in [-1, 0, 1]:
-                            for dk in [-1, 0, 1]:
-                                if di == 0 and dj == 0 and dk == 0:
-                                    continue
-                                ni, nj, nk = origin_idx[0]+di, origin_idx[1]+dj, origin_idx[2]+dk
-                                if 0 <= ni < esdf.shape[0] and 0 <= nj < esdf.shape[1] and 0 <= nk < esdf.shape[2]:
-                                    neighbor_dist = esdf[ni, nj, nk]
-                                    if neighbor_dist < 100.0:  # 只打印非最大值 / Only print non-maximum values.
-                                        print(f"      [{ni:2d}, {nj:2d}, {nk:2d}]: {neighbor_dist:6.3f}m")
-                else:
-                    print(f"   ⚠️  机器人位置不在ESDF网格范围内! 索引:{origin_idx}, 形状:{esdf.shape}")
-
-                metadata = {
-                    'voxel_size': voxel_size,
-                    'grid_origin': np.array(grid_origin),
-                    'grid_size': grid_size
-                }
-
-            else:
-                # 降级到 CPU 方法 / Fall back to the CPU method.
-                if self.config.show_verbose:
-                    if not NVBLOX_AVAILABLE:
-                        print("⚠️  NVBlox不可用，使用CPU方法")
-                    else:
-                        print("📊 使用CPU方法生成ESDF...")
-                esdf, metadata = quick_depth_to_esdf(
-                    depth_meters,
-                    self.config.camera_intrinsics,
-                    **self.config.esdf_config
-                )
+            # 使用 CPU/CuPy (EDT) 方法生成 ESDF
+            # Generate the ESDF with the CPU/CuPy (EDT) method.
+            if self.config.show_verbose:
+                print("📊 使用 CPU 方法生成 ESDF / Generating ESDF with the CPU method...")
+            esdf, metadata = quick_depth_to_esdf(
+                depth_meters,
+                self.config.camera_intrinsics,
+                **self.config.esdf_config
+            )
 
             # 坐标变换函数 / Coordinate transform functions.
             def baselink_to_camera(p_bl):
