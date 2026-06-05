@@ -211,15 +211,11 @@ Three pretrained checkpoints are released. Download the desired file, place it u
 | Checkpoint | Arc-length cap | Control points | Description |
 | --- | --- | --- | --- |
 | **`NoMax.pth`** *(default)* | none (uncapped) | 8 | Trained on the full-length ground-truth trajectory (no arc-length cap); longer planning horizon. Default in `InferenceConfig`. |
-| **`NoMax_12.pth`** | none (uncapped) | 12 | Same setup as `NoMax.pth` but with **12** B-spline control points for higher-resolution trajectories. Requires `num_control_points=12` (see note below). |
+| **`NoMax_12.pth`** | none (uncapped) | 12 | Same setup as `NoMax.pth` but with **12** B-spline control points for higher-resolution trajectories. |
 | **`Max_2.1m.pth`** | `max_arc_length = 2.1 m` | 8 | Supervision targets are truncated to the first **2.1 m** of the path while the true (possibly distant) goal is kept as the conditioning input — a short, fixed-horizon local plan, stable for close-range maneuvers. |
 
-> ⚠️ The checkpoints do **not** embed the control-point count, so it must match
-> `InferenceConfig.num_control_points` (default `8`). To use `NoMax_12.pth`, set it to `12`:
->
-> ```python
-> config = InferenceConfig(checkpoint_path="checkpoints/NoMax_12.pth", num_control_points=12)
-> ```
+> The control-point count is detected automatically when a checkpoint is loaded, so no
+> extra configuration is needed regardless of which checkpoint you use.
 
 **Download** (from the [`v1.0` release](https://github.com/WangJinCheng1998/sandplanner/releases/tag/v1.0)):
 
