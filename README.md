@@ -18,6 +18,148 @@ obstacle field.
 
 ---
 
+## Contents
+
+1. [**Installation**](#-installation) — set up SanD-Planner
+2. [**Evaluation**](#-evaluation-navdp-benchmark) — reproduce results on the NavDP benchmark
+3. [Usage](#usage) · [Highlights](#highlights) · [Repository structure](#repository-structure) · [Configuration](#configuration) · [Pretrained weights & data](#pretrained-weights--data) · [Citation](#citation)
+
+---
+
+# 📦 Installation
+
+**1. Clone and install SanD-Planner**
+
+```bash
+git clone https://github.com/WangJinCheng1998/sandplanner.git
+cd sandplanner
+pip install -r requirements.txt
+```
+
+Requires **Python ≥ 3.9** and a **CUDA-enabled PyTorch** build.
+
+**2. (Optional) GPU-accelerated ESDF**
+
+```bash
+pip install cupy-cuda12x      # match your CUDA version
+```
+
+Without CuPy, a CPU Euclidean-distance-transform fallback is used automatically.
+
+**3. Pretrained weights**
+
+Download a checkpoint and place it under `checkpoints/` (see
+[Pretrained weights & data](#pretrained-weights--data)).
+
+> The Isaac Sim simulator and the NavDP benchmark are **only** needed to reproduce the
+> navigation evaluation — see [Evaluation](#-evaluation-navdp-benchmark) below.
+
+---
+
+# 🚀 Evaluation (NavDP benchmark)
+
+SanD-Planner is evaluated in the
+[NavDP](https://github.com/InternRobotics/NavDP) navigation benchmark, running on
+**NVIDIA Isaac Sim 4.2.0** and **Isaac Lab 1.2.0**. The planner runs as an HTTP server
+that the NavDP evaluation scripts query at every simulation step.
+
+### Step 1 — Install Isaac Sim 4.2.0 + Isaac Lab 1.2.0
+
+```bash
+# Isaac Sim 4.2.0 in a dedicated conda environment
+conda create -n isaaclab python=3.10
+conda activate isaaclab
+pip install --upgrade pip
+pip install isaacsim==4.2.0.2 isaacsim-extscache-physics==4.2.0.2 \
+    isaacsim-extscache-kit==4.2.0.2 isaacsim-extscache-kit-sdk==4.2.0.2 \
+    --extra-index-url https://pypi.nvidia.com
+isaacsim omni.isaac.sim.python.kit
+
+# Isaac Lab 1.2.0
+git clone https://github.com/isaac-sim/IsaacLab.git
+cd IsaacLab && git checkout tags/v1.2.0
+./isaaclab.sh -i
+./isaaclab.sh -p source/standalone/tutorials/00_sim/create_empty.py   # smoke test
+```
+
+### Step 2 — Install the NavDP benchmark
+
+```bash
+git clone https://github.com/InternRobotics/NavDP.git
+cd NavDP
+pip install -r requirements.txt
+```
+
+Then download the benchmark scene assets following the
+[NavDP repository](https://github.com/InternRobotics/NavDP).
+
+### Step 3 — Run the evaluation (two terminals)
+
+```bash
+# Terminal 1 — serve SanD-Planner (run from THIS repo)
+python sand_planner/server/simple_server.py --port 8890 \
+    --checkpoint checkpoints/your_model.pth
+
+# Terminal 2 — run NavDP point-goal evaluation (run from the NavDP repo)
+python eval_pointgoal_wheeled.py --port 8890 \
+    --scene_dir {ASSET_SCENE} --scene_index {INDEX} --scene_scale {SCALE}
+```
+
+> Isaac Sim / Isaac Lab versions and asset setup follow the NavDP benchmark; please
+> refer to the upstream repository for the authoritative, up-to-date instructions.
+
+---
+
+## Usage
+
+### Programmatic inference
+
+```python
+from sand_planner import InferenceConfig, SandPlannerInference
+
+config = InferenceConfig(checkpoint_path="checkpoints/your_model.pth")
+planner = SandPlannerInference(config)
+results = planner.run_inference("depth_frame.png")        # from a depth image file
+best = results["sampled_trajectories"][results["best_index"]]   # (N, 3) trajectory
+```
+
+`SandPlannerInference` is the core engine: depth → diffusion → B-spline control points
+→ arc-length sampling → ESDF evaluation → best trajectory. Use `run_inference(path)`
+for files, or `process_depth_arrays(depth_tensor)` for in-memory tensors.
+
+### Online agent
+
+```python
+from sand_planner.agent.sand_planner_agent import SandPlannerAgent
+```
+
+`SandPlannerAgent` wraps the engine for closed-loop navigation: call
+`reset(batch_size, threshold)` once, then `step_pointgoal(goals, images, depths)` each
+step to get the trajectory to execute. This is the interface used by the inference
+server and the NavDP benchmark.
+
+### Inference server
+
+```bash
+python sand_planner/server/simple_server.py --port 8890 --checkpoint checkpoints/your_model.pth
+```
+
+Exposes `/navigator_reset`, `/pointgoal_step` and `/health` endpoints.
+
+### Training
+
+```bash
+export DATASET_ROOT=/path/to/dataset
+export STATS_JSON=/path/to/trajectory_stats.json
+bash run_train.sh
+```
+
+Hyper-parameters (sequence length, number of control points, learning-rate schedule,
+normalization, CFG, etc.) are passed as command-line arguments in `run_train.sh`.
+Training metrics are logged to Weights & Biases (project `sand-planner`).
+
+---
+
 ## Highlights
 
 - **Diffusion in control-point space.** A conditional 1-D U-Net DDPM generates
@@ -68,125 +210,7 @@ sand_planner/
     └── simple_server.py      # Flask point-goal inference server
 
 run_train.sh                  # training launcher
-cp_vs_error_plot.py           # control-points vs. reconstruction-error analysis
-elbow_test_6m.py              # elbow test for choosing the number of control points
-turn_vs_cp.py                 # turning sharpness vs. control-point analysis
-plot_arc_length_dist.py       # dataset arc-length distribution
 ```
-
----
-
-## Installation
-
-```bash
-git clone https://github.com/WangJinCheng1998/sandplanner.git
-cd sandplanner
-pip install -r requirements.txt
-```
-
-Python ≥ 3.9 and a CUDA-enabled PyTorch build are recommended. GPU-accelerated ESDF
-computation is optional — install `cupy`; otherwise a CPU
-Euclidean-distance-transform fallback is used.
-
----
-
-## Usage
-
-### Inference (programmatic)
-
-```python
-from sand_planner import InferenceConfig, SandPlannerInference
-
-config = InferenceConfig(checkpoint_path="checkpoints/your_model.pth")
-planner = SandPlannerInference(config)
-# run inference on depth observations to obtain candidate trajectories
-```
-
-### Online agent
-
-```python
-from sand_planner.agent.sand_planner_agent import SandPlannerAgent
-```
-
-`SandPlannerAgent` provides a `step_pointgoal(goal, image, depth)` interface for
-closed-loop point-goal navigation.
-
-### Inference server
-
-```bash
-python sand_planner/server/simple_server.py --port 8890 --checkpoint checkpoints/your_model.pth
-```
-
-The server exposes `/navigator_reset`, `/pointgoal_step` and `/health` endpoints for
-point-goal navigation.
-
-### Training
-
-```bash
-export DATASET_ROOT=/path/to/dataset
-export STATS_JSON=/path/to/trajectory_stats.json
-bash run_train.sh
-```
-
-Hyper-parameters (sequence length, number of control points, learning-rate schedule,
-normalization, CFG, etc.) are passed as command-line arguments in `run_train.sh`.
-Training metrics are logged to Weights & Biases (project `sand-planner`).
-
----
-
-## Simulation & benchmark
-
-SanD-Planner is evaluated in the
-[NavDP](https://github.com/InternRobotics/NavDP) navigation benchmark, which runs on
-**NVIDIA Isaac Sim 4.2.0** and **Isaac Lab 1.2.0**. The planner is served over HTTP
-(see *Inference server* above) and queried by the NavDP evaluation scripts.
-
-### 1. Set up the simulation environment
-
-```bash
-# Create a conda environment with Isaac Sim 4.2.0
-conda create -n isaaclab python=3.10
-conda activate isaaclab
-pip install --upgrade pip
-pip install isaacsim==4.2.0.2 isaacsim-extscache-physics==4.2.0.2 \
-    isaacsim-extscache-kit==4.2.0.2 isaacsim-extscache-kit-sdk==4.2.0.2 \
-    --extra-index-url https://pypi.nvidia.com
-isaacsim omni.isaac.sim.python.kit
-
-# Install Isaac Lab 1.2.0
-git clone https://github.com/isaac-sim/IsaacLab.git
-cd IsaacLab
-git checkout tags/v1.2.0
-./isaaclab.sh -i
-./isaaclab.sh -p source/standalone/tutorials/00_sim/create_empty.py   # smoke test
-```
-
-### 2. Install the NavDP benchmark
-
-```bash
-git clone https://github.com/InternRobotics/NavDP.git
-cd NavDP
-pip install -r requirements.txt
-```
-
-Download the benchmark scene assets following the instructions in the
-[NavDP repository](https://github.com/InternRobotics/NavDP).
-
-### 3. Run the evaluation
-
-Start the SanD-Planner server, then launch a NavDP evaluation script against it:
-
-```bash
-# (terminal 1) serve SanD-Planner
-python sand_planner/server/simple_server.py --port 8890 --checkpoint checkpoints/your_model.pth
-
-# (terminal 2, inside the NavDP repo) point-goal evaluation
-python eval_pointgoal_wheeled.py --port 8890 \
-    --scene_dir {ASSET_SCENE} --scene_index {INDEX} --scene_scale {SCALE}
-```
-
-> Isaac Sim / Isaac Lab versions and asset setup follow the NavDP benchmark; please
-> refer to the upstream repository for the authoritative, up-to-date instructions.
 
 ---
 
