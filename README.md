@@ -37,28 +37,6 @@ obstacle field.
 
 ---
 
-## Method overview
-
-```
- depth frames (T×H×W)               point goal (x, y)
-        │                                  │
-        ▼                                  │
- ResNet-18 + Transformer  ──►  depth tokens │
- (multi-frame, +motion)                    ▼
-        └──────────►  Condition encoder (depth + goal tokens)
-                                   │  encoder_hidden_states
-                                   ▼
-                 Conditional 1-D U-Net DDPM  (CFG, v-pred, DPM-Solver)
-                                   │
-                                   ▼
-                    B-spline control points  (N = 8 / 12)
-                                   │  clamped cubic B-spline + arc-length resampling
-                                   ▼
-              candidate trajectories ──► ESDF evaluator ──► best trajectory
-```
-
----
-
 ## Repository structure
 
 ```
