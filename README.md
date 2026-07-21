@@ -63,6 +63,10 @@ SanD-Planner is evaluated in the
 **NVIDIA Isaac Sim 4.2.0** and **Isaac Lab 1.2.0**. The planner runs as an HTTP server
 that the NavDP evaluation scripts query at every simulation step.
 
+> [!WARNING]
+> Before running evaluation, update the evaluation environment configuration to match
+> the camera intrinsics, extrinsics, and image resolution used by your setup.
+
 <p align="center">
   <img src="assets/eval_demo.gif" width="360" alt="Point-goal navigation in a cluttered hard scene"/>
   <img src="assets/eval_demo2.gif" width="360" alt="Point-goal navigation in an indoor scene"/>
