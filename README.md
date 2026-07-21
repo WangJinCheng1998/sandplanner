@@ -2,7 +2,10 @@
 
 ### Sample-Efficient Diffusion Planner in B-Spline Space for Robust Local Navigation
 
+[![RSS 2026](https://img.shields.io/badge/RSS-2026-00629B.svg)](https://roboticsconference.org/program/papers/69/)
 [![arXiv](https://img.shields.io/badge/arXiv-2602.00923-b31b1b.svg)](https://arxiv.org/abs/2602.00923)
+
+> **Accepted to Robotics: Science and Systems (RSS) 2026.**
 
 SanD-Planner is a learning-based local trajectory planner for point-goal robot
 navigation. It predicts smooth, collision-aware trajectories directly from onboard
@@ -266,11 +269,14 @@ folder of depth frames. The benchmark / simulation scene assets are separate —
 If you find this work useful, please cite:
 
 ```bibtex
-@article{wang2026sand,
+@inproceedings{wang2026sand,
   title   = {SanD-Planner: Sample-Efficient Diffusion Planner in B-Spline Space for Robust Local Navigation},
   author  = {Wang, Jincheng and Bao, Lingfan and Yang, Tong and Plasencia, Diego Martinez and Jiao, Jianhao and Kanoulas, Dimitrios},
-  journal = {arXiv preprint arXiv:2602.00923},
-  year    = {2026}
+  booktitle = {Proceedings of Robotics: Science and Systems XXII},
+  address = {Sydney, Australia},
+  month   = {July},
+  year    = {2026},
+  url     = {https://roboticsconference.org/program/papers/69/}
 }
 ```
 
