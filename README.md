@@ -66,9 +66,14 @@ SanD-Planner is evaluated in the
 **NVIDIA Isaac Sim 4.2.0** and **Isaac Lab 1.2.0**. The planner runs as an HTTP server
 that the NavDP evaluation scripts query at every simulation step.
 
-> [!WARNING]
-> Before running evaluation, update the evaluation environment configuration to match
-> the camera intrinsics, extrinsics, and image resolution used by your setup.
+> [!IMPORTANT]
+> **Reproduction requires the camera SanD-Planner was trained with.** The policy expects
+> depth from a **640×480** camera with **`focal_length = 1.144306`** (fx ≈ 389.55). The
+> stock NavDP Dingo camera is **640×360 / `focal_length = 1.4`** (fx ≈ 476.6) — a different
+> intrinsic *and* aspect ratio, which is out-of-distribution for the network (it downsamples
+> depth to 224×168, i.e. 4:3). In `configs/robots/dingo_config.py`, set `DINGO_CameraCfg` to
+> `height=480` and `focal_length=1.144306` (keep `width=640`, `horizontal_aperture=1.88`;
+> the camera **extrinsics / mount pose stay unchanged**).
 
 <p align="center">
   <img src="assets/eval_demo.gif" width="360" alt="Point-goal navigation in a cluttered hard scene"/>
