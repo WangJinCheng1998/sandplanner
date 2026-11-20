@@ -247,21 +247,30 @@ wget -P checkpoints \
 
 ### Training data
 
-The **`dataset_avoid`** subset — obstacle-avoidance runs collected in a custom **Gazebo**
-simulation, one part of the full training set used to train the released checkpoints — is
-available on the Hugging Face Hub:
+Three example subsets of the training data, collected in **Gazebo**, are available on the
+Hugging Face Hub (only part of the full training set is released):
 
 **https://huggingface.co/datasets/WJCUCL/sandplanner-dataset-avoid**
 
+| Archive | Runs | Size | Content |
+|---|---|---|---|
+| `dataset_avoid.zip` | 152 | 14.3 GB | Obstacle avoidance on flat ground |
+| `dataset_ccts_avoid.zip` | 17 | 22 MB | Obstacle avoidance on flat ground |
+| `dataset_4floor.zip` | 13 | 36 MB | Multi-floor stairs, with non-zero pitch |
+
 ```bash
-# download the archive and extract into dataset/dataset_avoid/
-hf download WJCUCL/sandplanner-dataset-avoid dataset_avoid.zip \
-    --repo-type dataset --local-dir .
-unzip dataset_avoid.zip -d dataset/      # -> dataset/dataset_avoid/run_XXXX/
+# download the archives and extract into dataset/
+for f in dataset_avoid dataset_ccts_avoid dataset_4floor; do
+  hf download WJCUCL/sandplanner-dataset-avoid $f.zip --repo-type dataset --local-dir .
+  unzip -q $f.zip -d dataset/            # -> dataset/$f/run_XXXX/
+done
 
 # train on it (run_train.sh loads every dataset_* subdir under DATASET_ROOT)
 DATASET_ROOT=dataset bash run_train.sh
 ```
+
+The data format and pose conventions are described on the dataset page. `NoMax.pth` is the
+2D version (z is clamped by its stats), and we recommend training in 2D (x, y) only.
 
 Each `run_XXXX/` holds `traj_xyz.npy`, `traj_yaw.npy`, `traj_pitch.npy` and a `depth/`
 folder of depth frames. The benchmark / simulation scene assets are separate — see
