@@ -6,6 +6,15 @@ SanD-planner 简易推理服务器 / Simple SanD-planner inference server.
 No rate limit; every request triggers a fresh planning pass, and only point-goal navigation is supported.
 """
 
+import os
+import sys
+
+# 将仓库根目录加入搜索路径，使 `python sand_planner/server/simple_server.py` 可直接运行
+# Add the repo root to sys.path so `python sand_planner/server/simple_server.py` works as-is
+_REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+if _REPO_ROOT not in sys.path:
+    sys.path.insert(0, _REPO_ROOT)
+
 from PIL import Image
 from flask import Flask, request, jsonify
 from sand_planner.config import InferenceConfig
