@@ -1542,6 +1542,15 @@ def main():
     parser.add_argument('--static_frame_selection', type=str, default='last',
                        choices=['first', 'middle', 'last', 'random'],
                        help='Which frame to use for static sequence')
+
+    # D435 深度噪声增强（仅训练集；默认关闭，NoMax.pth 训练时未开启）
+    # D435 depth-noise augmentation (training set only; off by default, not used for NoMax.pth)
+    parser.add_argument('--enable_depth_noise', action='store_true',
+                       help='Add simulated RealSense D435 noise (sand_planner/utils/depth_noise.py, V3) to training depth images')
+    parser.add_argument('--depth_noise_prob', type=float, default=0.1,
+                       help='Probability of adding noise to each training depth image (0.0 to 1.0)')
+    parser.add_argument('--depth_noise_seed', type=int, default=None,
+                       help='RNG seed for the depth noise (defaults to the dataset split seed)')
     
     # 多帧融合策略 / Multi-frame fusion strategy
     parser.add_argument('--multi_frame_fusion', type=str, default='concat',
@@ -1719,6 +1728,10 @@ def main():
     static_sequence_prob=args.static_sequence_prob,
     static_sequence_strategy=args.static_sequence_strategy,
     static_frame_selection=args.static_frame_selection,
+    # D435 深度噪声增强（仅训练集） / D435 depth-noise augmentation (training set only)
+    enable_depth_noise=args.enable_depth_noise,
+    depth_noise_prob=args.depth_noise_prob,
+    depth_noise_seed=args.depth_noise_seed,
     # 楼梯场景权重优化 / Stair-scene sampling-weight tuning
     scene_sampling_weights=scene_sampling_weights,
     # 训练/验证集分割 / Train/validation split

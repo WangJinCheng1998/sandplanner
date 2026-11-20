@@ -272,6 +272,11 @@ DATASET_ROOT=dataset bash run_train.sh
 The data format and pose conventions are described on the dataset page. `NoMax.pth` is the
 2D version (z is clamped by its stats), and we recommend training in 2D (x, y) only.
 
+**Optional depth-noise augmentation.** Add `--enable_depth_noise` (and optionally
+`--depth_noise_prob 0.1`) to the training command to apply simulated RealSense D435 noise
+(`sand_planner/utils/depth_noise.py`) to the training depth images, which can help sim-to-real
+transfer. It is off by default; `NoMax.pth` was trained without it.
+
 Each `run_XXXX/` holds `traj_xyz.npy`, `traj_yaw.npy`, `traj_pitch.npy` and a `depth/`
 folder of depth frames. The benchmark / simulation scene assets are separate — see
 [Evaluation](#-evaluation-navdp-benchmark).

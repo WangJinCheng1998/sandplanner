@@ -4,12 +4,13 @@ import numpy as np
 import torch
 from torch.utils.data import Dataset, DataLoader
 from PIL import Image
-from typing import Tuple, Dict, List
+from typing import Tuple, Dict, List, Optional
 import cv2
 import warnings
 import sys
 from sand_planner.utils.bspline import fit_trajectory_8cp, compute_bspline_arc_length_from_result
 from sand_planner.utils.image import downscale_640x480_to_320x240, downscale_to_target_size
+from sand_planner.utils.depth_noise import D435DepthNoiseSimulatorV3, D435NoiseConfigV3
 warnings.filterwarnings('ignore')
 
 
@@ -55,7 +56,13 @@ class SandPlannerBSplineDataset(Dataset):
                  num_control_points: int = 8,
                  # 弧长上限（米），超过此长度的轨迹会被截断后重新拟合；None 表示不限制
                  # arc-length upper bound (meters); trajectories longer than this are truncated then re-fitted; None means no limit
-                 max_arc_length: float = None):
+                 max_arc_length: float = None,
+                 # 可选的 D435 深度噪声增强（默认关闭；NoMax.pth 训练时未开启）
+                 # optional D435 depth-noise augmentation (off by default; not used to train NoMax.pth)
+                 enable_depth_noise: bool = False,
+                 depth_noise_prob: float = 0.1,  # 每张深度图被加噪的概率 / probability of adding noise to each depth image
+                 depth_noise_params: Optional[Dict[str, float]] = None,  # 覆盖 D435NoiseConfigV3 的默认值 / overrides for D435NoiseConfigV3 defaults
+                 depth_noise_seed: Optional[int] = None):  # 噪声随机种子，None 时用 random_seed / noise RNG seed; defaults to random_seed
         """
         输出 B-spline 控制点的 SanD-planner 数据集（支持多场景）。 / SanD-planner dataset with B-spline control points output (multi-scene support).
 
@@ -147,6 +154,20 @@ class SandPlannerBSplineDataset(Dataset):
         self.split_mode = split_mode
         self.train_ratio = train_ratio
         self.random_seed = random_seed
+
+        # 可选的 D435 深度噪声增强 / optional D435 depth-noise augmentation
+        self.enable_depth_noise = enable_depth_noise
+        self.depth_noise_prob = float(np.clip(depth_noise_prob, 0.0, 1.0))
+        self.depth_noise_simulator = None
+        self.depth_noise_rng = None
+        if self.enable_depth_noise:
+            cfg_kwargs = depth_noise_params or {}
+            noise_config = D435NoiseConfigV3(**cfg_kwargs)
+            self.depth_noise_simulator = D435DepthNoiseSimulatorV3(noise_config)
+            seed = depth_noise_seed if depth_noise_seed is not None else random_seed
+            self.depth_noise_rng = np.random.default_rng(int(seed))
+            print(f"Depth noise augmentation enabled (D435 V3): prob={self.depth_noise_prob:.2f}, "
+                  f"left_band={self.depth_noise_simulator.config.left_band_px}px")
 
         # 发现所有可用的数据集 / discover all available datasets
         self.available_datasets = self._discover_datasets()
@@ -405,6 +426,23 @@ class SandPlannerBSplineDataset(Dataset):
             # cv2.resize 接受 (width, height)，而 self.image_size 是 (height, width) / cv2.resize expects (width, height), but self.image_size is (height, width)
             target_height, target_width = self.image_size
             depth_array = cv2.resize(depth_array, (target_width, target_height), interpolation=cv2.INTER_NEAREST)
+
+        # 可选：D435 深度噪声增强（在归一化之前，以米为单位） / optional D435 depth-noise augmentation (before normalization, in meters)
+        if (
+            self.depth_noise_simulator is not None
+            and self.depth_noise_rng is not None
+            and self.depth_noise_rng.random() <= self.depth_noise_prob
+        ):
+            noisy_depth, invalid_mask, _ = self.depth_noise_simulator.simulate(
+                depth_array,
+                max_depth=self.max_depth,
+                rng=self.depth_noise_rng,
+            )
+            depth_array = noisy_depth
+            # 无论填充模式如何，送入网络的无效像素一律置 0（与真实 D435 输出一致）
+            # whatever the fill mode, invalid pixels fed to the network are set to 0 (as in real D435 output)
+            if self.depth_noise_simulator.config.invalid_fill_mode != "zero":
+                depth_array[invalid_mask] = 0.0
 
         # 按需归一化到 [0, 1] / normalize to [0, 1] if requested
         if self.normalize_depth:
