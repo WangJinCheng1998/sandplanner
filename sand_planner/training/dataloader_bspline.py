@@ -537,38 +537,41 @@ class SandPlannerBSplineDataset(Dataset):
         在起点坐标系下计算从起点到终点的相对位姿。 / Compute the relative pose from start to end in the start-frame coordinates.
 
         返回起点坐标系下的 [dx, dy, dz]（同时考虑 yaw 与 pitch 旋转）。
-        变换顺序为：世界系 -> yaw 旋转 -> pitch 旋转 -> 局部系；
-        因此其逆变换为：局部系 -> pitch^-1 -> yaw^-1 -> 世界系。
+        约定：世界系 Z 朝上；局部系 x 前、y 左、z 上；yaw 绕世界 Z 轴（逆时针为正），
+        pitch 绕局部 y（横向）轴（低头为正，上坡为负）。
+        局部到世界的旋转为 R = Rz(yaw) @ Ry(pitch)，因此世界到局部为
+        R^T = Ry(-pitch) @ Rz(-yaw)：先逆 yaw，再逆 pitch。
 
         Returns [dx, dy, dz] in the start frame (considering both yaw and pitch rotations).
-        The transformation order is: World -> Yaw rotation -> Pitch rotation -> Local frame,
-        so the inverse is: Local frame -> Pitch^-1 -> Yaw^-1 -> World.
+        Convention: world frame is Z-up; local frame is x forward, y left, z up; yaw is about
+        the world Z axis (counter-clockwise positive), pitch is about the local lateral (y) axis
+        (nose-down positive, so uphill is negative).
+        The local-to-world rotation is R = Rz(yaw) @ Ry(pitch), so world-to-local is
+        R^T = Ry(-pitch) @ Rz(-yaw): undo yaw first, then undo pitch.
+
+        注：早期版本把两步顺序写反了（先逆 pitch 再逆 yaw）。pitch = 0 时两者完全等价，
+        因此只在 pitch 为 0 的数据上训练的 NoMax.pth 不受影响。
+        Note: an earlier version applied the two steps in the wrong order (pitch first, then yaw).
+        Both orders are identical when pitch = 0, so NoMax.pth (trained only on pitch = 0 data)
+        is unaffected.
         """
         # 世界坐标系下的平移差 / translation difference in world coordinates
         world_translation = xyz_end - xyz_start
-
-        # 按相反顺序应用逆变换 / apply inverse transformations in reverse order:
-        # 1. 逆 yaw 旋转（绕 Z 轴） / inverse yaw rotation (around Z-axis)
-        # 2. 逆 pitch 旋转（绕 Y 轴） / inverse pitch rotation (around Y-axis)
 
         cos_yaw = np.cos(-yaw_start)
         sin_yaw = np.sin(-yaw_start)
         cos_pitch = np.cos(-pitch_start)
         sin_pitch = np.sin(-pitch_start)
 
-        # 构造旋转：R_yaw_inv * R_pitch_inv * world_translation / build rotation: R_yaw_inv * R_pitch_inv * world_translation
-        # 组合旋转 R_yaw_inv @ R_pitch_inv，等价于先做 pitch_inv 再做 yaw_inv
-        # combined rotation R_yaw_inv @ R_pitch_inv is equivalent to applying pitch_inv first, then yaw_inv
+        # 1. 先应用逆 yaw 旋转（绕世界 Z 轴） / first apply the inverse yaw rotation (about the world Z axis)
+        x_after_yaw = world_translation[0] * cos_yaw - world_translation[1] * sin_yaw
+        y_after_yaw = world_translation[0] * sin_yaw + world_translation[1] * cos_yaw
+        z_after_yaw = world_translation[2]
 
-        # 先应用逆 pitch 旋转（绕 Y 轴） / first apply inverse pitch rotation (around Y-axis)
-        x_after_pitch = world_translation[0] * cos_pitch + world_translation[2] * sin_pitch
-        y_after_pitch = world_translation[1]
-        z_after_pitch = -world_translation[0] * sin_pitch + world_translation[2] * cos_pitch
-
-        # 再应用逆 yaw 旋转（绕 Z 轴） / then apply inverse yaw rotation (around Z-axis)
-        relative_x = x_after_pitch * cos_yaw - y_after_pitch * sin_yaw
-        relative_y = x_after_pitch * sin_yaw + y_after_pitch * cos_yaw
-        relative_z = z_after_pitch
+        # 2. 再应用逆 pitch 旋转（绕局部 y 轴） / then apply the inverse pitch rotation (about the local y axis)
+        relative_x = x_after_yaw * cos_pitch + z_after_yaw * sin_pitch
+        relative_y = y_after_yaw
+        relative_z = -x_after_yaw * sin_pitch + z_after_yaw * cos_pitch
 
         return np.array([relative_x, relative_y, relative_z], dtype=np.float32)
     
